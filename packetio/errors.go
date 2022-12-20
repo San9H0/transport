@@ -24,4 +24,6 @@ var (
 
 	// ErrTimeout is returned when a deadline has expired
 	ErrTimeout = errors.New("i/o timeout")
+
+	ErrAgain = errors.New("resource temporarily unavailable")
 )

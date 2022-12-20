@@ -43,6 +43,8 @@ type Buffer struct {
 	limitCount, limitSize int
 
 	readDeadline *deadline.Deadline
+
+	nonBlocking bool
 }
 
 const (
@@ -259,6 +261,11 @@ func (b *Buffer) Read(packet []byte) (n int, err error) {
 			return 0, io.EOF
 		}
 
+		if b.nonBlocking {
+			b.mutex.Unlock()
+			return 0, ErrAgain
+		}
+
 		notify := b.notify
 		b.subs = true
 		b.mutex.Unlock()
@@ -344,4 +351,8 @@ func (b *Buffer) SetLimitSize(limit int) {
 func (b *Buffer) SetReadDeadline(t time.Time) error {
 	b.readDeadline.Set(t)
 	return nil
+}
+
+func (b *Buffer) SetNonBlocking(nonBlocking bool) {
+	b.nonBlocking = nonBlocking
 }
