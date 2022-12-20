@@ -196,10 +196,12 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 // Returns io.EOF if the buffer is closed.
 func (b *Buffer) Read(packet []byte) (n int, err error) {
 	// Return immediately if the deadline is already exceeded.
-	select {
-	case <-b.readDeadline.Done():
-		return 0, &netError{ErrTimeout, true, true}
-	default:
+	if !b.nonBlocking {
+		select {
+		case <-b.readDeadline.Done():
+			return 0, &netError{ErrTimeout, true, true}
+		default:
+		}
 	}
 
 	for {
