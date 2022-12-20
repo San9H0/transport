@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
+	"github.com/San9H0/transport/vnet"
 	"github.com/pion/logging"
-	"github.com/pion/transport/vnet"
 )
 
 func main() {

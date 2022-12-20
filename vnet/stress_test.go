@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/San9H0/transport/test"
 	"github.com/pion/logging"
-	"github.com/pion/transport/test"
 	"github.com/stretchr/testify/assert"
 )
 

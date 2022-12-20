@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/pion/transport/connctx"
+	"github.com/San9H0/transport/connctx"
 )
 
 var errByteSequenceChanged = errors.New("byte sequence changed")
