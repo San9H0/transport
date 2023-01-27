@@ -26,6 +26,7 @@ const (
 // This is verify similar to bytes.Buffer but avoids combining multiple writes into a single read.
 type Buffer struct {
 	mutex sync.Mutex
+	cond  *Cond
 
 	// this is a circular buffer.  If head <= tail, then the useful
 	// data is in the interval [head, tail[.  If tail < head, then
@@ -35,8 +36,6 @@ type Buffer struct {
 	data       []byte
 	head, tail int
 
-	notify chan struct{}
-	subs   bool
 	closed bool
 
 	count                 int
@@ -53,10 +52,12 @@ const (
 
 // NewBuffer creates a new Buffer.
 func NewBuffer() *Buffer {
-	return &Buffer{
-		notify:       make(chan struct{}),
+	b := &Buffer{
+		//notify:       make(chan struct{}),
 		readDeadline: deadline.New(),
 	}
+	b.cond = NewCond(&b.mutex)
+	return b
 }
 
 // available returns true if the buffer is large enough to fit a packet
@@ -148,15 +149,15 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 		}
 	}
 
-	var notify chan struct{}
+	//var notify chan struct{}
 
-	if b.subs {
-		// readers are waiting.  Prepare to notify, but only
-		// actually do it after we release the lock.
-		notify = b.notify
-		b.notify = make(chan struct{})
-		b.subs = false
-	}
+	//if b.subs {
+	//	// readers are waiting.  Prepare to notify, but only
+	//	// actually do it after we release the lock.
+	//	notify = b.notify
+	//	b.notify = make(chan struct{})
+	//	b.subs = false
+	//}
 
 	// store the length of the packet
 	b.data[b.tail] = uint8(len(packet) >> 8)
@@ -181,9 +182,11 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 	b.count++
 	b.mutex.Unlock()
 
-	if notify != nil {
-		close(notify)
-	}
+	b.cond.Signal()
+
+	//if notify != nil {
+	//	close(notify)
+	//}
 
 	return len(packet), nil
 }
@@ -201,6 +204,9 @@ func (b *Buffer) Read(packet []byte) (n int, err error) {
 	}
 
 	for {
+
+		b.cond.Wait()
+
 		b.mutex.Lock()
 
 		if b.head != b.tail {
@@ -259,14 +265,14 @@ func (b *Buffer) Read(packet []byte) (n int, err error) {
 			return 0, io.EOF
 		}
 
-		notify := b.notify
-		b.subs = true
+		//notify := b.notify
+		//b.subs = true
 		b.mutex.Unlock()
 
 		select {
 		case <-b.readDeadline.Done():
 			return 0, &netError{ErrTimeout, true, true}
-		case <-notify:
+			//case <-notify:
 		}
 	}
 }
@@ -281,12 +287,14 @@ func (b *Buffer) Close() (err error) {
 		return nil
 	}
 
-	notify := b.notify
+	//notify := b.notify
 	b.closed = true
 
 	b.mutex.Unlock()
 
-	close(notify)
+	b.cond.Signal()
+
+	//close(notify)
 
 	return nil
 }
