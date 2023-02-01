@@ -3,6 +3,7 @@ package packetio
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"sync"
 	"time"
@@ -43,6 +44,10 @@ type Buffer struct {
 	limitCount, limitSize int
 
 	readDeadline *deadline.Deadline
+
+	closeTime  time.Time
+	closeCount int
+	totalCount int
 }
 
 const (
@@ -53,6 +58,7 @@ const (
 
 // NewBuffer creates a new Buffer.
 func NewBuffer() *Buffer {
+	fmt.Println("[TESTDEBUG] Test NewBuffer")
 	return &Buffer{
 		notify:       make(chan struct{}),
 		readDeadline: deadline.New(),
@@ -179,6 +185,19 @@ func (b *Buffer) Write(packet []byte) (int, error) {
 		b.tail = m
 	}
 	b.count++
+
+	now := time.Now()
+	if now.Sub(b.closeTime) > 10*time.Second {
+		fmt.Printf("[TESTDEBUG] 10sec CloseTest closeCount:%+v, totalCount:%+v\n",
+			b.closeCount, b.totalCount)
+		b.closeTime = now
+		b.closeCount = 0
+		b.totalCount = 0
+	}
+	if notify != nil {
+		b.closeCount++
+	}
+	b.totalCount++
 	b.mutex.Unlock()
 
 	if notify != nil {
