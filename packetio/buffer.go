@@ -58,7 +58,7 @@ const (
 
 // NewBuffer creates a new Buffer.
 func NewBuffer() *Buffer {
-	fmt.Println("[TESTDEBUG] Test NewBuffer")
+	fmt.Println("[TESTDEBUG] Test NewBuffer !!!")
 	return &Buffer{
 		notify:       make(chan struct{}),
 		readDeadline: deadline.New(),
